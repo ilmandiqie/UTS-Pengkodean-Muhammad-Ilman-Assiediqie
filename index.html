@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voucher Entri — Transaksi Kas Keluar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root { color-scheme: light; }
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    input, select, textarea, button { font: inherit; }
+    .field { width: 100%; border: 1px solid #d1d5db; border-radius: .65rem; padding: .65rem .75rem; background: white; color: #111827; outline: none; }
+    .field:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgb(37 99 235 / .12); }
+    .field[aria-invalid="true"] { border-color: #dc2626; }
+    .btn { border-radius: .65rem; padding: .65rem 1rem; font-weight: 650; transition: .15s ease; }
+    .btn-primary { background: #1d4ed8; color: white; }
+    .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+    .btn-secondary { border: 1px solid #d1d5db; background: white; color: #374151; }
+    .table-input { min-width: 105px; }
+    .code { white-space: pre; overflow-x: auto; font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .nav-link { color: #475569; }
+    .nav-link:hover { color: #1d4ed8; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <header class="border-b border-slate-200 bg-white">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-700 text-lg font-black text-white">VE</div>
+        <div>
+          <p class="font-bold tracking-tight">Voucher Entri</p>
+          <p class="text-xs text-slate-500">Transaksi Kas Keluar</p>
+        </div>
+      </div>
+      <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Prototype · Data lokal</span>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+      <div>
+        <p class="mb-2 text-xs font-bold uppercase tracking-[.18em] text-blue-700">Keuangan / Jurnal</p>
+        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Voucher Entri Kas Keluar</h1>
+        <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Masukkan informasi transaksi dan rincian jurnal. Sistem menghitung keseimbangan secara otomatis sebelum data dapat diajukan.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="resetBtn" type="button" class="btn btn-secondary">Reset formulir</button>
+        <button id="addTopBtn" type="button" class="btn btn-primary">＋ Tambah baris</button>
+      </div>
+    </div>
+
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_310px]">
+      <section class="min-w-0 space-y-6">
+        <form id="voucherForm" novalidate>
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div class="mb-5 flex items-center gap-3">
+              <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 font-bold text-blue-700">01</div>
+              <div>
+                <h2 class="font-semibold">Informasi transaksi</h2>
+                <p class="text-sm text-slate-500">Lengkapi identitas voucher kas keluar.</p>
+              </div>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="block text-sm font-medium text-slate-700">Tanggal transaksi
+                <input id="transactionDate" class="field mt-1.5" type="date" required />
+                <span class="mt-1 block text-xs text-red-600" data-error-for="transactionDate"></span>
+              </label>
+              <label class="block text-sm font-medium text-slate-700">Nomor voucher
+                <input id="voucherNumber" class="field mt-1.5" type="text" placeholder="Contoh: KK-2026-0001" maxlength="50" required />
+                <span class="mt-1 block text-xs text-red-600" data-error-for="voucherNumber"></span>
+              </label>
+              <label class="block text-sm font-medium text-slate-700 md:col-span-2">Deskripsi transaksi
+                <textarea id="description" class="field mt-1.5" rows="3" maxlength="1000" placeholder="Contoh: Pembayaran biaya operasional kantor" required></textarea>
+                <span class="mt-1 block text-xs text-red-600" data-error-for="description"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div class="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 font-bold text-blue-700">02</div>
+                <div>
+                  <h2 class="font-semibold">Rincian jurnal</h2>
+                  <p class="text-sm text-slate-500">Minimal dua baris; tiap baris hanya boleh memiliki debit atau kredit.</p>
+                </div>
+              </div>
+              <button id="addBtn" type="button" class="btn btn-secondary whitespace-nowrap">＋ Tambah baris</button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[760px] border-separate border-spacing-0 text-left text-sm">
+                <thead>
+                  <tr class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <th class="rounded-l-lg border-y border-l border-slate-200 px-3 py-3">Akun</th>
+                    <th class="border-y border-slate-200 px-3 py-3 text-right">Debit (Rp)</th>
+                    <th class="border-y border-slate-200 px-3 py-3 text-right">Kredit (Rp)</th>
+                    <th class="rounded-r-lg border-y border-r border-slate-200 px-3 py-3 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="journalBody"></tbody>
+              </table>
+            </div>
+            <div id="lineErrors" class="mt-3 space-y-1 text-sm text-red-600" aria-live="polite"></div>
+            <div class="mt-5 flex flex-col justify-between gap-4 border-t border-slate-100 pt-5 sm:flex-row sm:items-center">
+              <p class="text-xs leading-5 text-slate-500">Masukkan nominal rupiah sebagai angka positif. Biarkan sisi yang tidak digunakan bernilai 0.</p>
+              <div class="flex flex-wrap gap-2">
+                <button id="addBottomBtn" type="button" class="btn btn-secondary">＋ Baris jurnal</button>
+                <button id="submitBtn" type="submit" class="btn btn-primary" disabled>Validasi & ajukan</button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <div id="resultMessage" class="hidden rounded-xl border p-4 text-sm" role="status" aria-live="polite"></div>
+      </section>
+
+      <aside class="space-y-5">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 class="font-semibold">Ringkasan jurnal</h2>
+          <p class="mt-1 text-sm text-slate-500">Dihitung otomatis dari baris jurnal.</p>
+          <div class="mt-5 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-slate-600">Total debit</span>
+              <strong id="totalDebit" class="tabular-nums">Rp0</strong>
+            </div>
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-sm text-slate-600">Total kredit</span>
+              <strong id="totalCredit" class="tabular-nums">Rp0</strong>
+            </div>
+            <div class="flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+              <span class="text-sm text-slate-600">Selisih</span>
+              <strong id="difference" class="tabular-nums">Rp0</strong>
+            </div>
+          </div>
+          <div id="balanceBadge" class="mt-5 flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-3 text-sm font-bold text-slate-600">
+            <span class="h-2 w-2 rounded-full bg-slate-400"></span> Belum valid
+          </div>
+          <p id="balanceHint" class="mt-3 text-xs leading-5 text-slate-500">Jurnal harus seimbang dan seluruh kolom wajib valid agar dapat diajukan.</p>
+        </div>
+
+        <div class="rounded-2xl border border-blue-100 bg-blue-50 p-5">
+          <div class="flex items-center gap-2 font-semibold text-blue-950"><span>ⓘ</span> Catatan prototipe</div>
+          <p class="mt-2 text-sm leading-6 text-blue-900">Akun dan transaksi contoh hanya berada di browser. Tombol ajukan menjalankan validasi sisi klien dan menampilkan pratinjau; belum menyimpan ke Supabase atau mem-posting jurnal.</p>
+        </div>
+
+        <div class="rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 class="font-semibold">Checklist sebelum ajukan</h3>
+          <ul class="mt-3 space-y-2 text-sm text-slate-600">
+            <li id="checkMeta" class="flex gap-2"><span>○</span> Informasi transaksi lengkap</li>
+            <li id="checkLines" class="flex gap-2"><span>○</span> Minimal dua baris valid</li>
+            <li id="checkAccounts" class="flex gap-2"><span>○</span> Semua akun dipilih</li>
+            <li id="checkBalance" class="flex gap-2"><span>○</span> Total debit = kredit</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+
+    <section class="mt-12 border-t border-slate-200 pt-8">
+      <div class="mb-6">
+        <p class="text-xs font-bold uppercase tracking-[.18em] text-blue-700">Dokumentasi implementasi</p>
+        <h2 class="mt-2 text-2xl font-bold tracking-tight">Struktur, database, dan aturan backend</h2>
+        <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-600">Bagian berikut adalah rancangan implementasi untuk pengembang. SQL dan backend di bawah belum dijalankan dari halaman ini.</p>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <details open class="rounded-2xl border border-slate-200 bg-white p-5">
+          <summary class="cursor-pointer font-semibold">1. Struktur file yang disarankan</summary>
+          <pre class="code mt-4 rounded-xl bg-slate-950 p-4 text-slate-100">voucher-kas-keluar/
+├── index.html              # Prototype UI (file ini)
+├── src/
+│   ├── main.js              # UI dan validasi client
+│   ├── supabaseClient.js    # Inisialisasi Supabase
+│   └── journalService.js    # Simpan/posting melalui RPC
+├── supabase/
+│   └── migrations/
+│       └── 001_journal.sql  # Skema + constraints + RPC
+└── README.md                # Konfigurasi dan test plan</pre>
+          <p class="mt-3 text-sm leading-6 text-slate-600">Untuk produksi, pindahkan JavaScript inline ke berkas <code>src/main.js</code>, gunakan bundler, dan jangan pernah menaruh service-role key di browser.</p>
+        </details>
+
+        <details open class="rounded-2xl border border-slate-200 bg-white p-5">
+          <summary class="cursor-pointer font-semibold">2. Skema SQL Supabase PostgreSQL</summary>
+          <p class="mt-3 text-sm text-slate-600">Contoh skema inti. Jalankan melalui Supabase SQL Editor setelah ditinjau dan disesuaikan dengan kebijakan akuntansi organisasi.</p>
+          <pre class="code mt-3 rounded-xl bg-slate-950 p-4 text-slate-100">create extension if not exists pgcrypto;
+
+create table public.chart_of_accounts (
+  id uuid primary key default gen_random_uuid(),
+  account_code text not null unique,
+  account_name text not null,
+  account_type text not null check
+    (account_type in ('ASSET','LIABILITY','EQUITY','REVENUE','EXPENSE')),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table public.journal_headers (
+  id uuid primary key default gen_random_uuid(),
+  voucher_number text not null unique,
+  transaction_date date not null,
+  description text not null check (length(trim(description)) > 0),
+  transaction_type text not null default 'CASH_DISBURSEMENT'
+    check (transaction_type = 'CASH_DISBURSEMENT'),
+  status text not null default 'DRAFT'
+    check (status in ('DRAFT','POSTED','REVERSED')),
+  created_by uuid not null references auth.users(id),
+  created_at timestamptz not null default now(),
+  posted_by uuid references auth.users(id),
+  posted_at timestamptz,
+  hash_checksum text,
+  reversed_journal_id uuid references public.journal_headers(id),
+  updated_at timestamptz not null default now()
+);
+
+create table public.journal_lines (
+  id uuid primary key default gen_random_uuid(),
+  journal_id uuid not null references public.journal_headers(id)
+    on delete restrict,
+  line_no integer not null check (line_no > 0),
+  account_id uuid not null references public.chart_of_accounts(id),
+  debit numeric(20,2) not null default 0 check (debit >= 0),
+  credit numeric(20,2) not null default 0 check (credit >= 0),
+  created_at timestamptz not null default now(),
+  unique (journal_id, line_no),
+  check (
+    (debit > 0 and credit = 0) or
+    (credit > 0 and debit = 0)
+  )
+);
+
+create table public.audit_logs (
+  id bigint generated always as identity primary key,
+  actor_id uuid references auth.users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id uuid,
+  occurred_at timestamptz not null default now(),
+  request_id text,
+  old_data jsonb,
+  new_data jsonb,
+  metadata jsonb not null default '{}'::jsonb
+);
+
+create index journal_headers_date_idx
+  on public.journal_headers(transaction_date);
+create index journal_headers_status_idx
+  on public.journal_headers(status);
+create index journal_lines_journal_idx
+  on public.journal_lines(journal_id);
+create index audit_logs_entity_idx
+  on public.audit_logs(entity_type, entity_id, occurred_at desc);</pre>
+          <p class="mt-3 text-sm leading-6 text-slate-600">Catatan: foreign key <code>reversed_journal_id</code> menghubungkan jurnal yang dikoreksi ke jurnal pembalik; pertimbangkan unique constraint parsial agar satu jurnal tidak dibalik berkali-kali.</p>
+        </details>
+
+        <details class="rounded-2xl border border-slate-200 bg-white p-5">
+          <summary class="cursor-pointer font-semibold">3. Hash checksum dan audit trail</summary>
+          <ul class="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">
+            <li><code>created_by</code> diambil dari identitas terautentikasi server, misalnya <code>auth.uid()</code>; jangan menerima nilai ini begitu saja dari request browser.</li>
+            <li><code>created_at</code> dibuat oleh database dengan <code>now()</code> dalam <code>timestamptz</code>.</li>
+            <li><code>hash_checksum</code> dihitung di sisi server dari representasi kanonis header dan seluruh baris yang diurutkan menurut <code>line_no</code>. Gunakan format serialisasi deterministik dan SHA-256 (misalnya <code>pgcrypto.digest(..., 'sha256')</code>).</li>
+            <li>Sertakan voucher, tanggal, deskripsi, akun, debit, kredit, dan identitas versi skema dalam payload hash. Simpan hasil sebagai hex.</li>
+            <li>Checksum membantu mendeteksi perubahan, tetapi bukan pengganti kontrol akses, audit log append-only, atau tanda tangan digital. Jika penyerang dapat mengubah data sekaligus hash, hash biasa saja tidak cukup.</li>
+            <li>Audit log dicatat di transaksi database yang sama dengan perubahan jurnal. Batasi UPDATE/DELETE pada audit log melalui privilege dan trigger/policy.</li>
+          </ul>
+        </details>
+
+        <details class="rounded-2xl border border-slate-200 bg-white p-5">
+          <summary class="cursor-pointer font-semibold">4. Aturan validasi backend sebelum simpan/posting</summary>
+          <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-slate-600">
+            <li>Validasi sesi pengguna dan otorisasi peran; identitas <code>created_by</code> harus berasal dari sesi terpercaya.</li>
+            <li>Validasi tanggal, nomor voucher, deskripsi, jumlah baris minimal dua, akun aktif dan dapat diposting, serta format nominal presisi dua desimal.</li>
+            <li>Untuk setiap baris, debit dan kredit tidak boleh negatif; tepat satu sisi harus positif. Tolak baris dengan keduanya nol atau keduanya positif.</li>
+            <li>Hitung ulang total debit dan kredit di server menggunakan <code>numeric</code>; wajib sama persis. Jangan percaya total yang dikirim browser.</li>
+            <li>Simpan header dan lines secara atomik dalam satu transaksi/RPC. Terapkan unique constraint nomor voucher untuk mencegah duplikasi/race condition.</li>
+            <li>Saat posting, lock header dengan <code>SELECT ... FOR UPDATE</code>, pastikan status masih <code>DRAFT</code>, validasi ulang seluruh baris, lalu set <code>POSTED</code>, <code>posted_by</code>, <code>posted_at</code>, dan checksum.</li>
+            <li>Blokir perubahan atau penghapusan langsung atas header/lines berstatus <code>POSTED</code> melalui RPC, trigger, dan privilege database. RLS saja tidak menggantikan aturan bisnis ini.</li>
+            <li>Koreksi dilakukan dengan membuat jurnal pembalik baru: nilai debit/kredit dibalik, referensi jurnal asal dicatat, dan keduanya terhubung lewat audit log. Jangan mengedit jurnal posted untuk “memperbaikinya”.</li>
+          </ol>
+        </details>
+      </div>
+
+      <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+        <h3 class="font-semibold text-amber-950">Contoh guard trigger untuk jurnal POSTED</h3>
+        <p class="mt-1 text-sm leading-6 text-amber-900">Trigger ini adalah lapisan perlindungan tambahan; buat fungsi serupa untuk <code>journal_lines</code> yang memeriksa status header induk. Tetap batasi hak akses tabel dan arahkan perubahan melalui RPC tepercaya.</p>
+        <pre class="code mt-3 rounded-xl bg-slate-950 p-4 text-slate-100">create or replace function public.prevent_posted_header_mutation()
+returns trigger
+language plpgsql
+as $$
+begin
+  if old.status = 'POSTED' then
+    raise exception 'Jurnal POSTED tidak boleh diubah atau dihapus; buat jurnal pembalik.';
+  end if;
+  return coalesce(new, old);
+end;
+$$;
+
+create trigger journal_header_posted_guard
+before update or delete on public.journal_headers
+for each row execute function public.prevent_posted_header_mutation();</pre>
+        <p class="mt-3 text-xs leading-5 text-amber-900">Implementasi produksi perlu mengizinkan transisi status yang dirancang secara eksplisit, misalnya POSTED → REVERSED hanya melalui fungsi reversal terotorisasi; trigger contoh di atas sengaja konservatif dan akan memblokir transisi tersebut sampai fungsi/aturan khusus dibuat.</p>
+      </div>
+
+      <div class="mt-5 grid gap-4 lg:grid-cols-2">
+        <div class="rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 class="font-semibold">5. Konfigurasi Supabase</h3>
+          <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-slate-600">
+            <li>Buat proyek Supabase dan jalankan migrasi SQL yang sudah direview.</li>
+            <li>Aktifkan Authentication dan siapkan peran pengguna, misalnya pembuat, reviewer, dan poster.</li>
+            <li>Aktifkan RLS pada tabel yang diakses melalui API. Buat policy least-privilege untuk SELECT dan operasi yang memang diizinkan.</li>
+            <li>Gunakan Supabase client di frontend dengan Project URL dan anon/publishable key. Key ini boleh ada di frontend jika RLS benar; jangan pernah mengekspos service-role key.</li>
+            <li>Untuk simpan/posting, panggil PostgreSQL RPC atau Edge Function yang memvalidasi dan menulis data secara atomik. Jangan memberi browser akses bebas untuk mengubah status POSTED.</li>
+          </ol>
+          <pre class="code mt-3 rounded-xl bg-slate-950 p-4 text-slate-100">npm install @supabase/supabase-js
+
+// src/supabaseClient.js
+import { createClient } from '@supabase/supabase-js';
+
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);</pre>
+          <p class="mt-2 text-xs text-slate-500">Simpan variabel pada <code>.env</code> dan jangan commit file tersebut ke repositori. Variabel Vite yang diawali <code>VITE_</code> akan tersedia di browser.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-5">
+          <h3 class="font-semibold">6. Skenario pengujian</h3>
+          <div class="mt-3 overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead><tr class="border-b border-slate-200 text-xs uppercase text-slate-500"><th class="py-2 pr-3">Kasus</th><th class="py-2 pr-3">Input</th><th class="py-2">Hasil yang diharapkan</th></tr></thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr><td class="py-3 pr-3 font-medium">Seimbang</td><td class="py-3 pr-3">Debit 100.000; kredit 100.000; 2 akun dipilih</td><td class="py-3 text-emerald-700">Balanced; tombol aktif jika metadata valid.</td></tr>
+                <tr><td class="py-3 pr-3 font-medium">Tidak seimbang</td><td class="py-3 pr-3">Debit 100.000; kredit 90.000</td><td class="py-3 text-red-700">Unbalanced; selisih Rp10.000; tombol nonaktif.</td></tr>
+                <tr><td class="py-3 pr-3 font-medium">Nominal negatif</td><td class="py-3 pr-3">Debit −100 atau kredit −100</td><td class="py-3 text-red-700">Ditolak; tampilkan pesan nominal tidak boleh negatif.</td></tr>
+                <tr><td class="py-3 pr-3 font-medium">Kedua sisi terisi</td><td class="py-3 pr-3">Debit dan kredit pada satu baris sama-sama positif</td><td class="py-3 text-red-700">Ditolak; tepat satu sisi harus positif.</td></tr>
+                <tr><td class="py-3 pr-3 font-medium">Kurang baris</td><td class="py-3 pr-3">Hanya satu baris jurnal</td><td class="py-3 text-red-700">Ditolak; minimal dua baris.</td></tr>
+                <tr><td class="py-3 pr-3 font-medium">Jurnal POSTED</td><td class="py-3 pr-3">UPDATE/DELETE langsung header atau line</td><td class="py-3 text-red-700">Database menolak; koreksi hanya lewat jurnal pembalik.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-5 rounded-2xl border border-slate-200 bg-white p-5">
+        <h3 class="font-semibold">Status implementasi</h3>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-xl bg-emerald-50 p-4">
+            <p class="font-semibold text-emerald-900">Dirancang di file ini</p>
+            <p class="mt-1 text-sm leading-6 text-emerald-800">Form responsif, tambah/hapus baris, perhitungan debit-kredit-selisih, indikator balance, validasi client-side, pratinjau pengajuan, dokumentasi skema dan kontrol backend.</p>
+          </div>
+          <div class="rounded-xl bg-amber-50 p-4">
+            <p class="font-semibold text-amber-900">Belum dijalankan / diuji</p>
+            <p class="mt-1 text-sm leading-6 text-amber-800">Koneksi Supabase, migrasi SQL, RLS, RPC transaksi atomik, hash checksum server, audit trail database, trigger final, dan pengujian integrasi. Semua perlu diterapkan serta diuji di proyek Supabase.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer class="mt-10 border-t border-slate-200 py-6 text-center text-xs text-slate-500">Voucher Entri · Purwarupa antarmuka untuk demonstrasi dan pengembangan lebih lanjut</footer>
+  </main>
+
+  <script>
+    (() => {
+      const accounts = [
+        { id: '1001', label: '1001 · Kas' },
+        { id: '1002', label: '1002 · Bank' },
+        { id: '1101', label: '1101 · Piutang usaha' },
+        { id: '2001', label: '2001 · Utang usaha' },
+        { id: '3001', label: '3001 · Modal' },
+        { id: '4001', label: '4001 · Pendapatan usaha' },
+        { id: '5001', label: '5001 · Beban operasional' },
+        { id: '5002', label: '5002 · Beban perlengkapan' }
+      ];
+      const form = document.getElementById('voucherForm');
+      const body = document.getElementById('journalBody');
+      const submitBtn = document.getElementById('submitBtn');
+      const lineErrors = document.getElementById('lineErrors');
+      const resultMessage = document.getElementById('resultMessage');
+      const dateInput = document.getElementById('transactionDate');
+      const voucherInput = document.getElementById('voucherNumber');
+      const descriptionInput = document.getElementById('description');
+      let lineCounter = 0;
+
+      // Tanggal default untuk memudahkan demo; pengguna tetap dapat mengubahnya.
+      dateInput.value = new Date().toLocaleDateString('en-CA');
+
+      const rupiah = (value) => new Intl.NumberFormat('id-ID', {
+        style: 'currency', currency: 'IDR', maximumFractionDigits: 2
+      }).format(value);
+
+      function addLine(account = '', debit = '', credit = '') {
+        lineCounter += 1;
+        const tr = document.createElement('tr');
+        tr.className = 'journal-row';
+        tr.dataset.lineId = String(lineCounter);
+        const options = accounts.map(a =>
+          `<option value="${a.id}" ${account === a.id ? 'selected' : ''}>${a.label}</option>`
+        ).join('');
+        tr.innerHTML = `
+          <td class="border-b border-slate-100 px-3 py-3 align-top">
+            <select class="field account-select" aria-label="Akun jurnal baris ${lineCounter}">
+              <option value="">Pilih akun…</option>${options}
+            </select>
+            <p class="mt-1 text-xs text-red-600 row-error"></p>
+          </td>
+          <td class="border-b border-slate-100 px-3 py-3 align-top">
+            <input class="field table-input debit-input text-right tabular-nums" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" value="${debit}" aria-label="Debit baris ${lineCounter}" />
+          </td>
+          <td class="border-b border-slate-100 px-3 py-3 align-top">
+            <input class="field table-input credit-input text-right tabular-nums" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0,00" value="${credit}" aria-label="Kredit baris ${lineCounter}" />
+          </td>
+          <td class="border-b border-slate-100 px-3 py-3 text-center align-top">
+            <button type="button" class="remove-line rounded-lg px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50" aria-label="Hapus baris ${lineCounter}">Hapus</button>
+          </td>`;
+        body.appendChild(tr);
+        tr.querySelectorAll('select,input').forEach(el => el.addEventListener('input', () => {
+          clearResult();
+          // UX helper: bila nominal debit positif, kosongkan kredit dan sebaliknya.
+          if (el.classList.contains('debit-input') && Number(el.value) > 0) tr.querySelector('.credit-input').value = '0';
+          if (el.classList.contains('credit-input') && Number(el.value) > 0) tr.querySelector('.debit-input').value = '0';
+          recalculate();
+        }));
+        tr.querySelector('.remove-line').addEventListener('click', () => {
+          tr.remove();
+          clearResult();
+          recalculate();
+        });
+        recalculate();
+      }
+
+      function getRows() {
+        return [...body.querySelectorAll('.journal-row')].map((tr, index) => {
+          const account = tr.querySelector('.account-select').value;
+          const debitRaw = tr.querySelector('.debit-input').value;
+          const creditRaw = tr.querySelector('.credit-input').value;
+          return {
+            tr, lineNo: index + 1, account,
+            debit: debitRaw.trim() === '' ? 0 : Number(debitRaw),
+            credit: creditRaw.trim() === '' ? 0 : Number(creditRaw),
+            debitRaw, creditRaw
+          };
+        });
+      }
+
+      function validate() {
+        const rows = getRows();
+        const errors = [];
+        let totalDebit = 0, totalCredit = 0;
+        rows.forEach((r, i) => {
+          const rowMessages = [];
+          if (!r.account) rowMessages.push('Pilih akun.');
+          if (r.debitRaw.trim() !== '' && (!Number.isFinite(r.debit) || r.debit < 0)) rowMessages.push('Debit tidak boleh negatif atau tidak valid.');
+          if (r.creditRaw.trim() !== '' && (!Number.isFinite(r.credit) || r.credit < 0)) rowMessages.push('Kredit tidak boleh negatif atau tidak valid.');
+          if ((r.debit > 0 && r.credit > 0) || (r.debit === 0 && r.credit === 0)) rowMessages.push('Isi tepat satu sisi debit atau kredit dengan nominal positif.');
+          if (r.debit > 0) totalDebit += r.debit;
+          if (r.credit > 0) totalCredit += r.credit;
+          r.tr.querySelector('.row-error').textContent = rowMessages.join(' ');
+          r.tr.querySelector('.account-select').setAttribute('aria-invalid', String(!r.account));
+          if (rowMessages.length) errors.push(`Baris ${i + 1}: ${rowMessages.join(' ')}`);
+        });
+
+        const metaErrors = [];
+        if (!dateInput.value) metaErrors.push('Tanggal transaksi wajib diisi.');
+        if (!voucherInput.value.trim()) metaErrors.push('Nomor voucher wajib diisi.');
+        if (!descriptionInput.value.trim()) metaErrors.push('Deskripsi wajib diisi.');
+        document.querySelector('[data-error-for="transactionDate"]').textContent = dateInput.value ? '' : 'Tanggal wajib diisi.';
+        document.querySelector('[data-error-for="voucherNumber"]').textContent = voucherInput.value.trim() ? '' : 'Nomor voucher wajib diisi.';
+        document.querySelector('[data-error-for="description"]').textContent = descriptionInput.value.trim() ? '' : 'Deskripsi wajib diisi.';
+        const balance = Math.abs(totalDebit - totalCredit) < 0.000001;
+        const enoughRows = rows.length >= 2;
+        if (!enoughRows) errors.unshift('Minimal harus ada dua baris jurnal.');
+        if (metaErrors.length) errors.unshift(...metaErrors);
+        if (totalDebit <= 0 || totalCredit <= 0) {
+          if (balance) errors.push('Total debit dan kredit harus lebih besar dari nol.');
+        }
+        return { rows, errors, totalDebit, totalCredit, difference: Math.abs(totalDebit - totalCredit), balance, enoughRows, metaValid: metaErrors.length === 0 };
+      }
+
+      function setCheck(id, ok, label) {
+        const el = document.getElementById(id);
+        el.innerHTML = `<span class="${ok ? 'text-emerald-600' : 'text-slate-400'}">${ok ? '✓' : '○'}</span> ${label}`;
+      }
+
+      function recalculate() {
+        const v = validate();
+        document.getElementById('totalDebit').textContent = rupiah(v.totalDebit);
+        document.getElementById('totalCredit').textContent = rupiah(v.totalCredit);
+        document.getElementById('difference').textContent = rupiah(v.difference);
+        const badge = document.getElementById('balanceBadge');
+        if (v.balance && v.totalDebit > 0 && v.totalCredit > 0) {
+          badge.className = 'mt-5 flex items-center justify-center gap-2 rounded-xl bg-emerald-100 px-3 py-3 text-sm font-bold text-emerald-800';
+          badge.innerHTML = '<span class="h-2 w-2 rounded-full bg-emerald-600"></span> Balanced';
+          document.getElementById('balanceHint').textContent = 'Total debit dan kredit sama. Pastikan semua validasi lain juga terpenuhi.';
+        } else {
+          badge.className = 'mt-5 flex items-center justify-center gap-2 rounded-xl bg-red-50 px-3 py-3 text-sm font-bold text-red-700';
+          badge.innerHTML = '<span class="h-2 w-2 rounded-full bg-red-500"></span> Unbalanced';
+          document.getElementById('balanceHint').textContent = 'Total debit dan kredit belum sama atau belum ada nominal positif di kedua sisi.';
+        }
+        const allRowsValid = v.rows.length >= 2 && v.rows.every(r =>
+          r.account && Number.isFinite(r.debit) && Number.isFinite(r.credit) &&
+          r.debit >= 0 && r.credit >= 0 && ((r.debit > 0 && r.credit === 0) || (r.credit > 0 && r.debit === 0))
+        );
+        const ready = v.metaValid && allRowsValid && v.balance && v.totalDebit > 0 && v.totalCredit > 0;
+        submitBtn.disabled = !ready;
+        setCheck('checkMeta', v.metaValid, 'Informasi transaksi lengkap');
+        setCheck('checkLines', allRowsValid, 'Minimal dua baris valid');
+        setCheck('checkAccounts', v.rows.length >= 2 && v.rows.every(r => !!r.account), 'Semua akun dipilih');
+        setCheck('checkBalance', v.balance && v.totalDebit > 0 && v.totalCredit > 0, 'Total debit = kredit');
+        lineErrors.innerHTML = v.errors.length ? v.errors.map(e => `<p>• ${escapeHtml(e)}</p>`).join('') : '';
+      }
+
+      function escapeHtml(str) {
+        return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      }
+
+      function clearResult() {
+        resultMessage.classList.add('hidden');
+        resultMessage.textContent = '';
+      }
+
+      [dateInput, voucherInput, descriptionInput].forEach(el => el.addEventListener('input', () => {
+        clearResult();
+        recalculate();
+      }));
+
+      function addNewLine() { addLine(); }
+      ['addBtn', 'addTopBtn', 'addBottomBtn'].forEach(id => document.getElementById(id).addEventListener('click', addNewLine));
+
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        form.reset();
+        dateInput.value = new Date().toLocaleDateString('en-CA');
+        body.innerHTML = '';
+        lineCounter = 0;
+        addLine();
+        addLine();
+        clearResult();
+        recalculate();
+      });
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const v = validate();
+        if (submitBtn.disabled || v.errors.length) {
+          resultMessage.className = 'rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800';
+          resultMessage.textContent = 'Pengajuan ditolak oleh validasi browser. Periksa kembali data transaksi dan baris jurnal.';
+          resultMessage.classList.remove('hidden');
+          return;
+        }
+        const preview = {
+          transaction_date: dateInput.value,
+          voucher_number: voucherInput.value.trim(),
+          description: descriptionInput.value.trim(),
+          status: 'DRAFT (pratinjau lokal; belum disimpan)',
+          lines: v.rows.map(r => ({
+            line_no: r.lineNo,
+            account_id: r.account,
+            account_name: accounts.find(a => a.id === r.account)?.label ?? '',
+            debit: r.debit,
+            credit: r.credit
+          })),
+          total_debit: v.totalDebit,
+          total_credit: v.totalCredit
+        };
+        resultMessage.className = 'rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950';
+        resultMessage.innerHTML = `<div class="font-semibold">Validasi client-side berhasil — pratinjau saja</div><p class="mt-1">Belum ada data yang dikirim ke database. Integrasikan dengan RPC backend setelah validasi server, otorisasi, RLS, dan audit log siap.</p><details class="mt-3"><summary class="cursor-pointer font-semibold">Lihat payload JSON</summary><pre class="code mt-2 rounded-lg bg-white p-3 text-slate-800">${escapeHtml(JSON.stringify(preview, null, 2))}</pre></details>`;
+        resultMessage.classList.remove('hidden');
+        resultMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+
+      addLine();
+      addLine();
+    })();
+  </script>
+</body>
+</html>
